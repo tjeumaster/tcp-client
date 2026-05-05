@@ -1,9 +1,19 @@
 [project]
 name = "tcp-client"
 version = "0.1.0"
-description = "Add your description here"
+description = "Async TCP client for Python"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
     "loguru>=0.7.3",
 ]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

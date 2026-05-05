@@ -1,8 +1,8 @@
 import asyncio
-from tcp.client import AsyncTCPClient
+from tcp import TCPClient
 
 async def main():
-    client = AsyncTCPClient("localhost", 3000, read_timeout=None)
+    client = TCPClient("localhost", 3000, read_timeout=None)
     await client.start()
 
     # Send a message

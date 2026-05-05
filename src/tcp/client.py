@@ -1,23 +1,24 @@
 import asyncio
 from loguru import logger 
 
-class AsyncTCPClient:
-    def __init__(self, host, port, read_timeout=None):
-        self.host = host
-        self.port = port
-        self.read_timeout = read_timeout  # Default is None (Infinite wait)
+class TCPClient:
+    def __init__(self, host: str, port: int, read_timeout: float = None, auto_ack: bool = False):
+        self.host: str = host
+        self.port: int = port
+        self.read_timeout: float = read_timeout  # Default is None (Infinite wait)
+        self.auto_ack: bool = auto_ack
         
-        self.reader = None
-        self.writer = None
+        self.reader: asyncio.StreamReader = None
+        self.writer: asyncio.StreamWriter = None
         
-        self.send_queue = asyncio.Queue()
-        self.receive_queue = asyncio.Queue()
-        self.running = False
+        self.send_queue: asyncio.Queue = asyncio.Queue()
+        self.receive_queue: asyncio.Queue = asyncio.Queue()
+        self.running: bool = False
         
-        self.can_send_next = asyncio.Event()
+        self.can_send_next: asyncio.Event = asyncio.Event()
         self.can_send_next.set()
         
-        self.connected_event = asyncio.Event()
+        self.connected_event: asyncio.Event = asyncio.Event()
 
     async def start(self):
         self.running = True
@@ -52,13 +53,15 @@ class AsyncTCPClient:
                 await self.can_send_next.wait()
 
                 message = await self.send_queue.get()
-                if message is None: break
+                if message is None: 
+                    break
 
                 logger.info(f"Sending: {message} to {self.host}:{self.port}")
                 self.writer.write(message.encode('utf-8'))
                 await self.writer.drain()
                 
-                self.can_send_next.clear()
+                if not self.auto_ack:
+                    self.can_send_next.clear()
                 self.send_queue.task_done()
 
             except (ConnectionResetError, BrokenPipeError, OSError):
@@ -121,5 +124,5 @@ class AsyncTCPClient:
     async def stop(self):
         self.running = False
         self._trigger_reconnect()
+        self.can_send_next.set()
         await self.send_queue.put(None)
-
