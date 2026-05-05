@@ -12,6 +12,36 @@ A robust, asynchronous TCP client for Python built on top of `asyncio`. It handl
 - **Configurable Timeouts**: Support for configurable read timeouts.
 - **Structured Logging**: Uses `loguru` for clear, colorized, and informative logging of connection states and background events.
 
+## How It Works
+
+```mermaid
+flowchart TD
+    Start["await client.start()"] --> Tasks["Start keep-alive, write, and read loops"]
+    Tasks --> Connect{"Connected?"}
+    Connect -- "No" --> Retry["Try connecting to host:port"]
+    Retry -- "Success" --> Connected["Set connected_event"]
+    Retry -- "Failure or timeout" --> Sleep["Wait 3s"]
+    Sleep --> Connect
+    Connect -- "Yes" --> Ready["Client ready"]
+
+    Send["await client.send(message)"] --> SendQueue["Put message in send_queue"]
+    SendQueue --> WriteLoop["Write loop waits for connection and send gate"]
+    Ready --> WriteLoop
+    WriteLoop --> Write["Send message over TCP"]
+    Write --> AutoAck{"auto_ack?"}
+    AutoAck -- "True" --> WriteLoop
+    AutoAck -- "False" --> Block["Block next send"]
+    Block --> Ack["client.acknowledge()"]
+    Ack --> WriteLoop
+
+    Connected --> ReadLoop["Read loop waits for incoming data"]
+    ReadLoop --> Data{"Data received?"}
+    Data -- "Yes" --> ReceiveQueue["Put message in receive_queue"]
+    ReceiveQueue --> Receive["await client.receive()"]
+    Data -- "EOF, timeout, or error" --> Reconnect["Clear connection and close writer"]
+    Reconnect --> Connect
+```
+
 ## Usage
 
 Here is a typical example demonstrating how to initialize the client, start it, send a message, and process incoming responses:
