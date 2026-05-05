@@ -2,7 +2,7 @@ import asyncio
 from loguru import logger 
 
 class TCPClient:
-    def __init__(self, host: str, port: int, read_timeout: float = None, auto_ack: bool = False):
+    def __init__(self, host: str, port: int, read_timeout: float = None, auto_ack: bool = True):
         self.host: str = host
         self.port: int = port
         self.read_timeout: float = read_timeout  # Default is None (Infinite wait)

@@ -7,8 +7,8 @@ A robust, asynchronous TCP client for Python built on top of `asyncio`. It handl
 - **Asynchronous I/O**: Built with Python's standard `asyncio` library for non-blocking network operations.
 - **Auto-Reconnection**: Resilient connection handling that automatically attempts to reconnect if the connection drops, encounters an error, or times out.
 - **Message Queues**: Decoupled sending and receiving operations using asynchronous queues (`send_queue`, `receive_queue`).
-- **Sequential Processing Control**: Built-in `acknowledge()` mechanism to ensure a message is fully processed before the next one is transmitted over the wire.
-- **Optional Auto-Acknowledgement**: Set `auto_ack=True` to keep sending queued messages without waiting for manual acknowledgements.
+- **Auto-Acknowledgement by Default**: Queued messages keep sending automatically unless manual acknowledgements are enabled.
+- **Sequential Processing Control**: Set `auto_ack=False` and call `acknowledge()` to ensure a message is fully processed before the next one is transmitted over the wire.
 - **Configurable Timeouts**: Support for configurable read timeouts.
 - **Structured Logging**: Uses `loguru` for clear, colorized, and informative logging of connection states and background events.
 
@@ -52,7 +52,7 @@ from tcp import TCPClient
 
 async def main():
     # Initialize the client pointing to your server
-    client = TCPClient("localhost", 3000, read_timeout=None, auto_ack=False)
+    client = TCPClient("localhost", 3000, read_timeout=None)
     
     # Start the client (blocks until connected)
     await client.start()
@@ -65,9 +65,6 @@ async def main():
             # Wait for the next incoming message
             response = await client.receive()
             print(f"Final Response: {response}")
-            
-            # Required when auto_ack=False to unlock the next send
-            client.acknowledge()
     finally:
         # Stop and clean up the client connection
         await client.stop()
@@ -76,14 +73,24 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+To block each queued send until your application has processed the previous response, disable auto-acknowledgement:
+
+```python
+client = TCPClient("localhost", 3000, auto_ack=False)
+
+response = await client.receive()
+# Process response here...
+client.acknowledge()
+```
+
 ## API Reference
 
-### `TCPClient(host, port, read_timeout=None, auto_ack=False)`
+### `TCPClient(host, port, read_timeout=None, auto_ack=True)`
 Initializes the client.
 - `host` *(str)*: The server hostname or IP address.
 - `port` *(int)*: The server port number.
 - `read_timeout` *(float, optional)*: Maximum time to wait on a read operation before logging a timeout and attempting to reconnect. Defaults to `None` (wait indefinitely).
-- `auto_ack` *(bool, optional)*: When `False`, each sent message blocks the next queued send until `acknowledge()` is called. When `True`, the client automatically unlocks the next send after writing a message. Defaults to `False`.
+- `auto_ack` *(bool, optional)*: When `True`, the client automatically unlocks the next send after writing a message. When `False`, each sent message blocks the next queued send until `acknowledge()` is called. Defaults to `True`.
 
 ### Core Methods
 
